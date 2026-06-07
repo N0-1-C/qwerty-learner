@@ -11,6 +11,7 @@ import type {
   PronunciationType,
   WordDictationOpenBy,
   WordDictationType,
+  WordWithIndex,
 } from '@/typings'
 import type { ReviewRecord } from '@/utils/db/record'
 import { atom } from 'jotai'
@@ -112,6 +113,11 @@ export const dismissStartCardDateAtom = atomWithStorage<Date | null>(DISMISS_STA
 
 // Enhanced version promotion popup state
 export const hasSeenEnhancedPromotionAtom = atomWithStorage('hasSeenEnhancedPromotion', false)
+
+// Custom word list for practicing selected words
+export const customWordListAtom = atom<WordWithIndex[] | null>(null)
+
+export const isCustomWordListModeAtom = atom((get) => get(customWordListAtom) !== null)
 
 // for dev test
 //   dismissStartCardDateAtom = atom<Date | null>(new Date())

@@ -9,7 +9,9 @@ import Tooltip from '@/components/Tooltip'
 import {
   currentChapterAtom,
   currentDictInfoAtom,
+  customWordListAtom,
   infoPanelStateAtom,
+  isCustomWordListModeAtom,
   isReviewModeAtom,
   randomConfigAtom,
   reviewModeInfoAtom,
@@ -42,6 +44,8 @@ const ResultScreen = () => {
 
   const setReviewModeInfo = useSetAtom(reviewModeInfoAtom)
   const isReviewMode = useAtomValue(isReviewModeAtom)
+  const isCustomWordListMode = useAtomValue(isCustomWordListModeAtom)
+  const setCustomWordList = useSetAtom(customWordListAtom)
 
   useEffect(() => {
     // tick a zero timer to calc the stats
@@ -129,16 +133,16 @@ const ResultScreen = () => {
   }, [isReviewMode, setWordDictationConfig, dispatch, randomConfig.isOpen])
 
   const dictationButtonHandler = useCallback(async () => {
-    if (isReviewMode) {
+    if (isReviewMode || isCustomWordListMode) {
       return
     }
 
     setWordDictationConfig((old) => ({ ...old, isOpen: true, openBy: 'auto' }))
     dispatch({ type: TypingStateActionType.REPEAT_CHAPTER, shouldShuffle: randomConfig.isOpen })
-  }, [isReviewMode, setWordDictationConfig, dispatch, randomConfig.isOpen])
+  }, [isReviewMode, isCustomWordListMode, setWordDictationConfig, dispatch, randomConfig.isOpen])
 
   const nextButtonHandler = useCallback(() => {
-    if (isReviewMode) {
+    if (isReviewMode || isCustomWordListMode) {
       return
     }
 
@@ -154,22 +158,26 @@ const ResultScreen = () => {
       setCurrentChapter((old) => old + 1)
       dispatch({ type: TypingStateActionType.NEXT_CHAPTER })
     }
-  }, [dispatch, isLastChapter, isReviewMode, setCurrentChapter, setWordDictationConfig])
+  }, [dispatch, isLastChapter, isReviewMode, isCustomWordListMode, setCurrentChapter, setWordDictationConfig])
 
   const exitButtonHandler = useCallback(() => {
     if (isReviewMode) {
       setCurrentChapter(0)
       setReviewModeInfo((old) => ({ ...old, isReviewMode: false }))
+    } else if (isCustomWordListMode) {
+      setCustomWordList(null)
+      dispatch({ type: TypingStateActionType.REPEAT_CHAPTER, shouldShuffle: false })
     } else {
       dispatch({ type: TypingStateActionType.REPEAT_CHAPTER, shouldShuffle: false })
     }
-  }, [dispatch, isReviewMode, setCurrentChapter, setReviewModeInfo])
+  }, [dispatch, isReviewMode, isCustomWordListMode, setCurrentChapter, setReviewModeInfo, setCustomWordList])
 
   const onNavigateToGallery = useCallback(() => {
     setCurrentChapter(0)
     setReviewModeInfo((old) => ({ ...old, isReviewMode: false }))
+    setCustomWordList(null)
     navigate('/gallery')
-  }, [navigate, setCurrentChapter, setReviewModeInfo])
+  }, [navigate, setCurrentChapter, setReviewModeInfo, setCustomWordList])
 
   useHotkeys(
     'enter',
@@ -220,7 +228,7 @@ const ResultScreen = () => {
         <div className="flex h-screen items-center justify-center">
           <div className="my-card fixed flex w-[90vw] max-w-6xl flex-col overflow-hidden rounded-3xl bg-white pb-14 pl-10 pr-5 pt-10 shadow-lg dark:bg-gray-800 md:w-4/5 lg:w-3/5">
             <div className="text-center font-sans text-xl font-normal text-gray-900 dark:text-gray-400 md:text-2xl">
-              {`${currentDictInfo.name} ${isReviewMode ? '错题复习' : '第' + (currentChapter + 1) + '章'}`}
+              {`${currentDictInfo.name} ${isCustomWordListMode ? '自定义单词练习' : isReviewMode ? '错题复习' : '第' + (currentChapter + 1) + '章'}`}
             </div>
             <button className="absolute right-7 top-5" onClick={exitButtonHandler}>
               <IconX className="text-gray-400" />
@@ -288,7 +296,7 @@ const ResultScreen = () => {
               </div>
             </div>
             <div className="mt-10 flex w-full justify-center gap-5 px-5 text-xl">
-              {!isReviewMode && (
+              {!isReviewMode && !isCustomWordListMode && (
                 <>
                   <Tooltip content="快捷键：shift + enter">
                     <button
@@ -312,7 +320,19 @@ const ResultScreen = () => {
                   </Tooltip>
                 </>
               )}
-              {!isLastChapter && !isReviewMode && (
+              {isCustomWordListMode && (
+                <Tooltip content="快捷键：space">
+                  <button
+                    className="my-btn-primary h-12 border-2 border-solid border-gray-300 bg-white text-base text-gray-700 dark:border-gray-700 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700"
+                    type="button"
+                    onClick={repeatButtonHandler}
+                    title="重复练习"
+                  >
+                    重复练习
+                  </button>
+                </Tooltip>
+              )}
+              {!isLastChapter && !isReviewMode && !isCustomWordListMode && (
                 <Tooltip content="快捷键：enter">
                   <button
                     className={`{ isLastChapter ? 'cursor-not-allowed opacity-50' : ''} my-btn-primary h-12 text-base font-bold `}
@@ -325,7 +345,7 @@ const ResultScreen = () => {
                 </Tooltip>
               )}
 
-              {isReviewMode && (
+              {(isReviewMode || isCustomWordListMode) && (
                 <button
                   className="my-btn-primary h-12 text-base font-bold"
                   type="button"

@@ -3,11 +3,12 @@ import Chapter from '../Chapter'
 import { ErrorTable } from '../ErrorTable'
 import { getRowsFromErrorWordData } from '../ErrorTable/columns'
 import { ReviewDetail } from '../ReviewDetail'
+import WordSelection from '../WordSelection'
 import useErrorWordData from '../hooks/useErrorWords'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { currentChapterAtom, currentDictIdAtom, reviewModeInfoAtom } from '@/store'
+import { currentChapterAtom, currentDictIdAtom, customWordListAtom, reviewModeInfoAtom } from '@/store'
 import type { Dictionary } from '@/typings'
 import range from '@/utils/range'
 import { useAtom, useSetAtom } from 'jotai'
@@ -16,11 +17,13 @@ import { useNavigate } from 'react-router-dom'
 import IcOutlineCollectionsBookmark from '~icons/ic/outline-collections-bookmark'
 import MajesticonsPaperFoldTextLine from '~icons/majesticons/paper-fold-text-line'
 import PajamasReviewList from '~icons/pajamas/review-list'
+import TablerListCheck from '~icons/tabler/list-check'
 
 enum Tab {
   Chapters = 'chapters',
   Errors = 'errors',
   Review = 'review',
+  WordSelection = 'wordSelection',
 }
 
 export default function DictDetail({ dictionary: dict }: { dictionary: Dictionary }) {
@@ -28,6 +31,7 @@ export default function DictDetail({ dictionary: dict }: { dictionary: Dictionar
   const [currentDictId, setCurrentDictId] = useAtom(currentDictIdAtom)
   const [curTab, setCurTab] = useState<Tab>(Tab.Chapters)
   const setReviewModeInfo = useSetAtom(reviewModeInfoAtom)
+  const setCustomWordList = useSetAtom(customWordListAtom)
   const navigate = useNavigate()
   const { deleteWordRecord } = useDeleteWordRecord()
   const [reload, setReload] = useState(false)
@@ -52,9 +56,10 @@ export default function DictDetail({ dictionary: dict }: { dictionary: Dictionar
       setCurrentDictId(dict.id)
       setCurrentChapter(index)
       setReviewModeInfo((old) => ({ ...old, isReviewMode: false }))
+      setCustomWordList(null)
       navigate('/')
     },
-    [dict.id, navigate, setCurrentChapter, setCurrentDictId, setReviewModeInfo],
+    [dict.id, navigate, setCurrentChapter, setCurrentDictId, setReviewModeInfo, setCustomWordList],
   )
 
   const handleTabChange = useCallback(
@@ -65,6 +70,12 @@ export default function DictDetail({ dictionary: dict }: { dictionary: Dictionar
     },
     [curTab],
   )
+
+  const onStartCustomPractice = useCallback(() => {
+    setCurrentDictId(dict.id)
+    setReviewModeInfo((old) => ({ ...old, isReviewMode: false }))
+    navigate('/')
+  }, [dict.id, navigate, setCurrentDictId, setReviewModeInfo])
 
   return (
     <div className="flex flex-col rounded-[4rem] px-4 py-3 pl-5 text-gray-800 dark:text-gray-300">
@@ -82,6 +93,14 @@ export default function DictDetail({ dictionary: dict }: { dictionary: Dictionar
             >
               <MajesticonsPaperFoldTextLine className="mr-1.5 text-gray-500" />
               章节选择
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value={Tab.WordSelection}
+              disabled={curTab === Tab.WordSelection}
+              className={`${curTab === Tab.WordSelection ? 'text-primary-foreground bg-primary' : ''} disabled:opacity-100`}
+            >
+              <TablerListCheck className="mr-1.5 text-gray-500" />
+              选择单词
             </ToggleGroupItem>
             {errorWordData.length > 0 && (
               <>
@@ -122,6 +141,9 @@ export default function DictDetail({ dictionary: dict }: { dictionary: Dictionar
                 ))}
               </div>
             </ScrollArea>
+          </TabsContent>
+          <TabsContent value={Tab.WordSelection} className="h-full">
+            <WordSelection dict={dict} onStartPractice={onStartCustomPractice} />
           </TabsContent>
           <TabsContent value={Tab.Errors} className="h-full">
             <ErrorTable data={tableData} isLoading={isLoading} error={error} onDelete={onDelete} />
